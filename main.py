@@ -63,17 +63,36 @@ class Game:
             self.screen.blit(txt, (WIDTH//2 - 200, HEIGHT - 40))
     def draw_options(self):
         options = [
-            "1: Forage",
-            "2: Change Location",
-            "3: Location Action",
-            "4: Special Event"
+            "1 Forage",
+            "2 Change Location",
+            "3 Location Action",
+            "4 Special Event"
         ]
-        option_height = self.font.get_height()
-        total_height = len(options) * option_height
-        start_y = HEIGHT - total_height - 20  # 20px margin from bottom
+        self.button_rects = []
+        button_width = 320
+        button_height = 50
+        gap = 8  # Decreased spacing between buttons
+        left_padding = 10
+        bottom_padding = 10
+        total_height = len(options) * (button_height + gap) - gap
+        start_y = HEIGHT - total_height - bottom_padding
+        mouse_pos = pygame.mouse.get_pos()
         for i, opt in enumerate(options):
-            txt = self.font.render(opt, True, WHITE)
-            self.screen.blit(txt, (10, start_y + i * option_height))
+            x = left_padding
+            y = start_y + i * (button_height + gap)
+            rect = pygame.Rect(x, y, button_width, button_height)
+            self.button_rects.append(rect)
+            # Hover and click animation
+            color = GRAY
+            if hasattr(self, 'clicked_button') and self.clicked_button == i:
+                color = (120, 120, 120)  # Clicked: darker gray
+            elif rect.collidepoint(mouse_pos):
+                color = (200, 200, 200)  # Hover: lighter gray
+            pygame.draw.rect(self.screen, color, rect, border_radius=10)
+            txt = self.font.render(opt, True, BLACK)
+            txt_x = rect.x + 16
+            txt_y = rect.y + (button_height - txt.get_height()) // 2
+            self.screen.blit(txt, (txt_x, txt_y))
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -121,19 +140,7 @@ class Game:
             txt = self.font.render(self.stats_animated[i], True, WHITE)
             self.screen.blit(txt, (10, 10 + i * 28))
 
-    def draw_options(self):
-        options = [
-            "1: Forage",
-            "2: Change Location",
-            "3: Location Action",
-            "4: Special Event"
-        ]
-        option_height = self.font.get_height()
-        total_height = len(options) * option_height
-        start_y = HEIGHT - total_height - 20  # 20px margin from bottom
-        for i, opt in enumerate(options):
-            txt = self.font.render(self.options_animated[i], True, WHITE)
-            self.screen.blit(txt, (10, start_y + i * option_height))
+    # Removed old text-based draw_options. Only button-based draw_options is used.
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -141,14 +148,34 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
-                elif event.key == pygame.K_1:
+                elif event.key in [pygame.K_1, pygame.K_KP1]:
+                    self.clicked_button = 0
                     self.set_message(self.do_action(1))
-                elif event.key == pygame.K_2:
+                elif event.key in [pygame.K_2, pygame.K_KP2]:
+                    self.clicked_button = 1
                     self.set_message(self.do_action(2))
-                elif event.key == pygame.K_3:
+                elif event.key in [pygame.K_3, pygame.K_KP3]:
+                    self.clicked_button = 2
                     self.set_message(self.do_action(3))
-                elif event.key == pygame.K_4:
+                elif event.key in [pygame.K_4, pygame.K_KP4]:
+                    self.clicked_button = 3
                     self.set_message(self.do_action(4))
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
+                if hasattr(self, 'button_rects'):
+                    for i, rect in enumerate(self.button_rects):
+                        if rect.collidepoint(mouse_pos):
+                            self.clicked_button = i
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                mouse_pos = event.pos
+                if hasattr(self, 'button_rects'):
+                    for i, rect in enumerate(self.button_rects):
+                        if rect.collidepoint(mouse_pos):
+                            self.set_message(self.do_action(i + 1))
+                self.clicked_button = None
+            elif event.type == pygame.KEYUP:
+                if event.key in [pygame.K_1, pygame.K_KP1, pygame.K_2, pygame.K_KP2, pygame.K_3, pygame.K_KP3, pygame.K_4, pygame.K_KP4]:
+                    self.clicked_button = None
 
     def set_message(self, msg):
         self.message = msg
