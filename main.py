@@ -61,17 +61,19 @@ class Game:
         options = [
             "1: Forage",
             "2: Change Location",
-            "3: Show Stats",
-            "4: Location Action",
-            "5: Special Event"
+            "3: Location Action",
+            "4: Special Event"
         ]
+        option_height = self.font.get_height()
+        total_height = len(options) * option_height
+        start_y = HEIGHT - total_height - 20  # 20px margin from bottom
         for i, opt in enumerate(options):
             txt = self.font.render(opt, True, WHITE)
-            self.screen.blit(txt, (10, HEIGHT - 150 + i * 28))
+            self.screen.blit(txt, (10, start_y + i * option_height))
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("Zombie Pro Fisher - 2D")
+        pygame.display.set_caption("ZPF: Ground Zero")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font("Jersey10-Regular.ttf", 32)
         self.player = Player()
@@ -128,8 +130,6 @@ class Game:
                     self.message = self.do_action(3)
                 elif event.key == pygame.K_4:
                     self.message = self.do_action(4)
-                elif event.key == pygame.K_5:
-                    self.message = self.do_action(5)
 
     def do_action(self, action):
         loc = self.player.location
@@ -138,8 +138,6 @@ class Game:
         elif action == 2:
             return self.change_location()
         elif action == 3:
-            return "Stats shown above."
-        elif action == 4:
             if loc == "Forest":
                 return self.gather("wood")
             elif loc == "Lake":
@@ -148,7 +146,7 @@ class Game:
                 return self.gather("machinery")
             elif loc == "Shack":
                 return self.shop()
-        elif action == 5:
+        elif action == 4:
             return self.special_event()
         return "Invalid action."
 
