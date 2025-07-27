@@ -60,7 +60,8 @@ class Game:
     def draw_message(self):
         if self.animated_message:
             txt = self.font.render(self.animated_message, True, YELLOW)
-            self.screen.blit(txt, (WIDTH//2 - 200, HEIGHT - 40))
+            txt_rect = txt.get_rect(center=(WIDTH // 2, HEIGHT - 40))
+            self.screen.blit(txt, txt_rect)
     def draw_options(self):
         options = [
             "1 Forage",
