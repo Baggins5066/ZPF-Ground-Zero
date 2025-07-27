@@ -57,12 +57,23 @@ class Player(pygame.sprite.Sprite):
 
 # Main game class
 class Game:
+    def draw_options(self):
+        options = [
+            "1: Forage",
+            "2: Change Location",
+            "3: Show Stats",
+            "4: Location Action",
+            "5: Special Event"
+        ]
+        for i, opt in enumerate(options):
+            txt = self.font.render(opt, True, WHITE)
+            self.screen.blit(txt, (10, HEIGHT - 150 + i * 28))
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Zombie Pro Fisher - 2D")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont(None, 32)
+        self.font = pygame.font.Font("Jersey10-Regular.ttf", 32)
         self.player = Player()
         self.all_sprites = pygame.sprite.Group(self.player)
         self.running = True
@@ -92,8 +103,10 @@ class Game:
     def draw_location(self):
         color = LOCATION_COLORS.get(self.player.location, BLACK)
         pygame.draw.rect(self.screen, color, (0, HEIGHT//2, WIDTH, HEIGHT//2))
-        txt = self.font.render(f"Location: {self.player.location}", True, BLACK)
-        self.screen.blit(txt, (WIDTH//2 - 100, HEIGHT//2 + 10))
+        # Draw current location centered at the top
+        txt = self.font.render(f"Location: {self.player.location}", True, YELLOW)
+        text_rect = txt.get_rect(center=(WIDTH // 2, 30))
+        self.screen.blit(txt, text_rect)
 
     def draw_message(self):
         if self.message:
@@ -214,16 +227,29 @@ class Game:
             return "The fire reminds you of home."
         return "Special event."
 
+    def draw_death_screen(self):
+        self.screen.fill(BLACK)
+        death_text = self.font.render("You have died!", True, RED)
+        sub_text = self.font.render("Press ESC to exit.", True, WHITE)
+        text_rect = death_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 30))
+        sub_rect = sub_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 30))
+        self.screen.blit(death_text, text_rect)
+        self.screen.blit(sub_text, sub_rect)
+
     def run(self):
         while self.running:
             self.clock.tick(FPS)
             self.handle_events()
             self.player.update_stats()
-            self.screen.fill(BLACK)
-            self.draw_location()
-            self.all_sprites.draw(self.screen)
-            self.draw_stats()
-            self.draw_message()
+            if self.player.health <= 0:
+                self.draw_death_screen()
+            else:
+                self.screen.fill(BLACK)
+                self.draw_location()
+                self.all_sprites.draw(self.screen)
+                self.draw_stats()
+                self.draw_options()
+                self.draw_message()
             pygame.display.flip()
         pygame.quit()
         sys.exit()
