@@ -34,7 +34,7 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
             self.image.fill(RED)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.rect.center = (WIDTH // 2, HEIGHT // 1.5)
         self.health = 8
         self.max_health = 8
         self.hunger = 10
@@ -462,9 +462,22 @@ class Game:
                 pygame.display.flip()
 
     def draw_location(self):
-        # Draw the current location name and background color
-        color = LOCATION_COLORS.get(self.player.location, GRAY)
-        pygame.draw.rect(self.screen, color, (0, 0, WIDTH, HEIGHT // 4))
+        # Draw the current location name and background color or image
+        if self.player.location == "Lake":
+            if not hasattr(self, 'lake_bg'):
+                try:
+                    self.lake_bg = pygame.image.load("assets/lake.png").convert()
+                    self.lake_bg = pygame.transform.scale(self.lake_bg, (WIDTH, HEIGHT))
+                except Exception as e:
+                    self.lake_bg = None
+            if self.lake_bg:
+                self.screen.blit(self.lake_bg, (0, 0))
+            else:
+                color = LOCATION_COLORS.get(self.player.location, GRAY)
+                pygame.draw.rect(self.screen, color, (0, 0, WIDTH, HEIGHT))
+        else:
+            color = LOCATION_COLORS.get(self.player.location, GRAY)
+            pygame.draw.rect(self.screen, color, (0, 0, WIDTH, HEIGHT // 4))
         loc_text = self.font.render(f"Location: {self.player.location}", True, BLACK)
         self.screen.blit(loc_text, (WIDTH // 2 - loc_text.get_width() // 2, 20))
 
