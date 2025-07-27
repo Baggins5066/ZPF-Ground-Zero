@@ -72,28 +72,63 @@ class Game:
         self.button_rects = []
         button_width = 320
         button_height = 50
-        gap = 8  # Decreased spacing between buttons
+        gap = 8
         left_padding = 10
         bottom_padding = 10
         total_height = len(options) * (button_height + gap) - gap
         start_y = HEIGHT - total_height - bottom_padding
         mouse_pos = pygame.mouse.get_pos()
+        # If location menu is open, disable other buttons
         for i, opt in enumerate(options):
             x = left_padding
             y = start_y + i * (button_height + gap)
             rect = pygame.Rect(x, y, button_width, button_height)
             self.button_rects.append(rect)
-            # Hover and click animation
-            color = GRAY
-            if hasattr(self, 'clicked_button') and self.clicked_button == i:
-                color = (120, 120, 120)  # Clicked: darker gray
-            elif rect.collidepoint(mouse_pos):
-                color = (200, 200, 200)  # Hover: lighter gray
+            # Disable other buttons if location menu is open
+            if getattr(self, 'location_menu_open', False):
+                if i != 1:
+                    color = (80, 80, 80)  # Disabled
+                else:
+                    color = GRAY
+            else:
+                color = GRAY
+                if hasattr(self, 'clicked_button') and self.clicked_button == i:
+                    color = (120, 120, 120)
+                elif rect.collidepoint(mouse_pos):
+                    color = (200, 200, 200)
             pygame.draw.rect(self.screen, color, rect, border_radius=10)
             txt = self.font.render(opt, True, BLACK)
             txt_x = rect.x + 16
             txt_y = rect.y + (button_height - txt.get_height()) // 2
             self.screen.blit(txt, (txt_x, txt_y))
+
+        # Draw location selection menu if open
+        if getattr(self, 'location_menu_open', False):
+            current_loc = self.player.location
+            locs = [loc for loc in LOCATIONS if loc != current_loc]
+            self.location_button_rects = []
+            loc_button_width = 260
+            loc_button_height = 50
+            loc_gap = gap  # Use same gap as main menu buttons
+            # Set horizontal distance between button sets to match gap
+            loc_start_x = left_padding + button_width + gap
+            loc_start_y = start_y + button_height + gap
+            for i, loc in enumerate(locs):
+                x = loc_start_x
+                y = loc_start_y + i * (loc_button_height + loc_gap)
+                rect = pygame.Rect(x, y, loc_button_width, loc_button_height)
+                self.location_button_rects.append(rect)
+                color = LOCATION_COLORS.get(loc, GRAY)
+                if hasattr(self, 'clicked_location_button') and self.clicked_location_button == i:
+                    color = (min(color[0]+40,255), min(color[1]+40,255), min(color[2]+40,255))
+                elif rect.collidepoint(mouse_pos):
+                    color = (min(color[0]+80,255), min(color[1]+80,255), min(color[2]+80,255))
+                pygame.draw.rect(self.screen, color, rect, border_radius=10)
+                # Add number in front of location name (no colon)
+                txt = self.font.render(f"{i+1} {loc}", True, BLACK)
+                txt_x = rect.x + 16
+                txt_y = rect.y + (loc_button_height - txt.get_height()) // 2
+                self.screen.blit(txt, (txt_x, txt_y))
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -149,12 +184,23 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                # If location menu is open, allow number keys to select location
+                if getattr(self, 'location_menu_open', False):
+                    # Only allow 1,2,3 keys for location selection
+                    for i in range(3):
+                        if event.key in [getattr(pygame, f'K_{i+1}'), getattr(pygame, f'K_KP{i+1}')]:
+                            self.change_location_direct(i)
+                            self.location_menu_open = False
+                            self.clicked_location_button = None
+                            break
+                    continue
                 elif event.key in [pygame.K_1, pygame.K_KP1]:
                     self.clicked_button = 0
                     self.set_message(self.do_action(1))
                 elif event.key in [pygame.K_2, pygame.K_KP2]:
                     self.clicked_button = 1
-                    self.set_message(self.do_action(2))
+                    # Open location menu instead of changing location immediately
+                    self.location_menu_open = True
                 elif event.key in [pygame.K_3, pygame.K_KP3]:
                     self.clicked_button = 2
                     self.set_message(self.do_action(3))
@@ -163,12 +209,36 @@ class Game:
                     self.set_message(self.do_action(4))
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_pos = event.pos
+                # If location menu is open, only allow location buttons
+                if getattr(self, 'location_menu_open', False):
+                    if hasattr(self, 'location_button_rects'):
+                        for i, rect in enumerate(self.location_button_rects):
+                            if rect.collidepoint(mouse_pos):
+                                self.clicked_location_button = i
+                                break
+                    return
                 if hasattr(self, 'button_rects'):
                     for i, rect in enumerate(self.button_rects):
                         if rect.collidepoint(mouse_pos):
                             self.clicked_button = i
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 mouse_pos = event.pos
+                # If location menu is open, handle location selection
+                if getattr(self, 'location_menu_open', False):
+                    clicked = False
+                    if hasattr(self, 'location_button_rects'):
+                        for i, rect in enumerate(self.location_button_rects):
+                            if rect.collidepoint(mouse_pos):
+                                self.change_location_direct(i)
+                                self.location_menu_open = False
+                                self.clicked_location_button = None
+                                clicked = True
+                                break
+                    # If clicked outside location buttons, close menu
+                    if not clicked:
+                        self.location_menu_open = False
+                        self.clicked_location_button = None
+                    return
                 if hasattr(self, 'button_rects'):
                     for i, rect in enumerate(self.button_rects):
                         if rect.collidepoint(mouse_pos):
@@ -230,10 +300,16 @@ class Game:
         return "Forage event."
 
     def change_location(self):
-        idx = LOCATIONS.index(self.player.location)
-        idx = (idx + 1) % len(LOCATIONS)
-        self.player.location = LOCATIONS[idx]
-        return f"You travel to the {self.player.location}."
+        # Open location menu instead of changing location immediately
+        self.location_menu_open = True
+        return "Choose a location to travel to."
+
+    def change_location_direct(self, idx):
+        # idx is the index in the filtered location list
+        current_loc = self.player.location
+        locs = [loc for loc in LOCATIONS if loc != current_loc]
+        self.player.location = locs[idx]
+        self.set_message(f"You travel to the {self.player.location}.")
 
     def gather(self, resource):
         amount = random.randint(0, 5)
