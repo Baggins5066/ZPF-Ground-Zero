@@ -5,7 +5,7 @@ import sys
 # Game constants
 WIDTH, HEIGHT = 1280, 720  # 16:9 ratio
 FPS = 60
-TILE_SIZE = 64
+TILE_SIZE = 200
 
 # Colors
 WHITE = (255, 255, 255)
@@ -24,8 +24,15 @@ LOCATION_COLORS = {"Forest": GREEN, "Lake": BLUE, "Nuclear Plant": GRAY, "Shack"
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(RED)
+        # Load custom sprite from assets folder
+        sprite_path = "assets/mechanicIdle.png"
+        try:
+            loaded_img = pygame.image.load(sprite_path).convert_alpha()
+            self.image = pygame.transform.scale(loaded_img, (TILE_SIZE, TILE_SIZE))
+        except Exception as e:
+            # Fallback to red square if image not found
+            self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
+            self.image.fill(RED)
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH // 2, HEIGHT // 2)
         self.health = 8
@@ -140,7 +147,7 @@ class Game:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("ZPF: Ground Zero")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font("Jersey10-Regular.ttf", 32)
+        self.font = pygame.font.Font("assets/Jersey10-Regular.ttf", 32)
         self.player = Player()
         self.all_sprites = pygame.sprite.Group(self.player)
         self.running = True
