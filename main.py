@@ -57,6 +57,10 @@ class Player(pygame.sprite.Sprite):
 
 # Main game class
 class Game:
+    def draw_message(self):
+        if self.animated_message:
+            txt = self.font.render(self.animated_message, True, YELLOW)
+            self.screen.blit(txt, (WIDTH//2 - 200, HEIGHT - 40))
     def draw_options(self):
         options = [
             "1: Forage",
@@ -81,6 +85,21 @@ class Game:
         self.running = True
         self.state = "main"  # main, shop, event, etc.
         self.message = ""
+        # Typewriter animation variables
+        self.animated_message = ""
+        self.message_index = 0
+        self.message_timer = 0
+        self.message_speed = 2  # frames per character (lower is faster)
+        # Typewriter for stats
+        self.stats_animated = ["" for _ in range(14)]
+        self.stats_index = [0 for _ in range(14)]
+        self.stats_timer = [0 for _ in range(14)]
+        self.stats_speed = 2
+        # Typewriter for options
+        self.options_animated = ["" for _ in range(4)]
+        self.options_index = [0 for _ in range(4)]
+        self.options_timer = [0 for _ in range(4)]
+        self.options_speed = 2
 
     def draw_stats(self):
         stats = [
@@ -99,22 +118,22 @@ class Game:
             f"FISH: {', '.join(self.player.fish) if self.player.fish else 'None'}"
         ]
         for i, stat in enumerate(stats):
-            txt = self.font.render(stat, True, WHITE)
+            txt = self.font.render(self.stats_animated[i], True, WHITE)
             self.screen.blit(txt, (10, 10 + i * 28))
 
-    def draw_location(self):
-        color = LOCATION_COLORS.get(self.player.location, BLACK)
-        pygame.draw.rect(self.screen, color, (0, HEIGHT//2, WIDTH, HEIGHT//2))
-        # Draw current location centered at the top
-        txt = self.font.render(f"Location: {self.player.location}", True, YELLOW)
-        text_rect = txt.get_rect(center=(WIDTH // 2, 30))
-        self.screen.blit(txt, text_rect)
-
-    def draw_message(self):
-        if self.message:
-            txt = self.font.render(self.message, True, YELLOW)
-            self.screen.blit(txt, (WIDTH//2 - 200, HEIGHT - 40))
-
+    def draw_options(self):
+        options = [
+            "1: Forage",
+            "2: Change Location",
+            "3: Location Action",
+            "4: Special Event"
+        ]
+        option_height = self.font.get_height()
+        total_height = len(options) * option_height
+        start_y = HEIGHT - total_height - 20  # 20px margin from bottom
+        for i, opt in enumerate(options):
+            txt = self.font.render(self.options_animated[i], True, WHITE)
+            self.screen.blit(txt, (10, start_y + i * option_height))
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -123,13 +142,19 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                 elif event.key == pygame.K_1:
-                    self.message = self.do_action(1)
+                    self.set_message(self.do_action(1))
                 elif event.key == pygame.K_2:
-                    self.message = self.do_action(2)
+                    self.set_message(self.do_action(2))
                 elif event.key == pygame.K_3:
-                    self.message = self.do_action(3)
+                    self.set_message(self.do_action(3))
                 elif event.key == pygame.K_4:
-                    self.message = self.do_action(4)
+                    self.set_message(self.do_action(4))
+
+    def set_message(self, msg):
+        self.message = msg
+        self.animated_message = ""
+        self.message_index = 0
+        self.message_timer = 0
 
     def do_action(self, action):
         loc = self.player.location
@@ -239,8 +264,68 @@ class Game:
             self.clock.tick(FPS)
             self.handle_events()
             self.player.update_stats()
+
+            # Typewriter animation update for message
+            if self.message:
+                if self.message_index < len(self.message):
+                    self.message_timer += 1
+                    if self.message_timer >= self.message_speed:
+                        self.message_index += 1
+                        self.message_timer = 0
+                    self.animated_message = self.message[:self.message_index]
+                else:
+                    self.animated_message = self.message
+            else:
+                self.animated_message = ""
+
+            # Typewriter animation for stats
+            stats = [
+                f"NAME: {self.player.name}",
+                f"HEALTH: {self.player.health}/{self.player.max_health}",
+                f"DAMAGE: {self.player.damage}",
+                f"LUCK: {self.player.luck}",
+                f"HUNGER: {self.player.hunger}",
+                f"MONEY: {self.player.money}",
+                f"WOOD: {self.player.wood}",
+                f"STONE: {self.player.stone}",
+                f"MACHINE PARTS: {self.player.machineparts}",
+                f"FISHING ROD: {self.player.fishingrod}",
+                f"WEAPON: {self.player.weapon}",
+                f"ARMOR: {', '.join(self.player.armor) if self.player.armor else 'None'}",
+                f"FISH: {', '.join(self.player.fish) if self.player.fish else 'None'}"
+            ]
+            for i, stat in enumerate(stats):
+                if self.stats_index[i] < len(stat):
+                    self.stats_timer[i] += 1
+                    if self.stats_timer[i] >= self.stats_speed:
+                        self.stats_index[i] += 1
+                        self.stats_timer[i] = 0
+                    self.stats_animated[i] = stat[:self.stats_index[i]]
+                else:
+                    self.stats_animated[i] = stat
+
+            # Typewriter animation for options
+            options = [
+                "1: Forage",
+                "2: Change Location",
+                "3: Location Action",
+                "4: Special Event"
+            ]
+            for i, opt in enumerate(options):
+                if self.options_index[i] < len(opt):
+                    self.options_timer[i] += 1
+                    if self.options_timer[i] >= self.options_speed:
+                        self.options_index[i] += 1
+                        self.options_timer[i] = 0
+                    self.options_animated[i] = opt[:self.options_index[i]]
+                else:
+                    self.options_animated[i] = opt
+
             if self.player.health <= 0:
                 self.draw_death_screen()
+                pygame.display.flip()
+                pygame.quit()
+                sys.exit()
             else:
                 self.screen.fill(BLACK)
                 self.draw_location()
@@ -248,9 +333,14 @@ class Game:
                 self.draw_stats()
                 self.draw_options()
                 self.draw_message()
-            pygame.display.flip()
-        pygame.quit()
-        sys.exit()
+                pygame.display.flip()
+
+    def draw_location(self):
+        # Draw the current location name and background color
+        color = LOCATION_COLORS.get(self.player.location, GRAY)
+        pygame.draw.rect(self.screen, color, (0, 0, WIDTH, HEIGHT // 4))
+        loc_text = self.font.render(f"Location: {self.player.location}", True, BLACK)
+        self.screen.blit(loc_text, (WIDTH // 2 - loc_text.get_width() // 2, 20))
 
 if __name__ == "__main__":
     game = Game()
