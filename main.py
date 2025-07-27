@@ -106,6 +106,7 @@ class Game:
         if getattr(self, 'location_menu_open', False):
             current_loc = self.player.location
             locs = [loc for loc in LOCATIONS if loc != current_loc]
+            locs_with_exit = locs + ["Cancel"]
             self.location_button_rects = []
             loc_button_width = 260
             loc_button_height = 50
@@ -113,9 +114,11 @@ class Game:
             # Set horizontal distance between button sets to match gap
             loc_start_x = left_padding + button_width + gap
             loc_start_y = start_y + button_height + gap
-            for i, loc in enumerate(locs):
+            num_buttons = len(locs_with_exit)
+            # Move all buttons down 2 slots
+            for i, loc in enumerate(locs_with_exit):
                 x = loc_start_x
-                y = loc_start_y + i * (loc_button_height + loc_gap)
+                y = loc_start_y + (i + 2 - (num_buttons - 1)) * (loc_button_height + loc_gap)
                 rect = pygame.Rect(x, y, loc_button_width, loc_button_height)
                 self.location_button_rects.append(rect)
                 color = LOCATION_COLORS.get(loc, GRAY)
@@ -125,7 +128,10 @@ class Game:
                     color = (min(color[0]+80,255), min(color[1]+80,255), min(color[2]+80,255))
                 pygame.draw.rect(self.screen, color, rect, border_radius=10)
                 # Add number in front of location name (no colon)
-                txt = self.font.render(f"{i+1} {loc}", True, BLACK)
+                if loc == "Cancel":
+                    txt = self.font.render(f"{i+1} Cancel", True, BLACK)
+                else:
+                    txt = self.font.render(f"{i+1} {loc}", True, BLACK)
                 txt_x = rect.x + 16
                 txt_y = rect.y + (loc_button_height - txt.get_height()) // 2
                 self.screen.blit(txt, (txt_x, txt_y))
@@ -229,11 +235,20 @@ class Game:
                     if hasattr(self, 'location_button_rects'):
                         for i, rect in enumerate(self.location_button_rects):
                             if rect.collidepoint(mouse_pos):
-                                self.change_location_direct(i)
-                                self.location_menu_open = False
-                                self.clicked_location_button = None
-                                clicked = True
-                                break
+                                # If Cancel button is clicked (always last)
+                                current_loc = self.player.location
+                                locs = [loc for loc in LOCATIONS if loc != current_loc]
+                                if i == len(locs):
+                                    self.location_menu_open = False
+                                    self.clicked_location_button = None
+                                    clicked = True
+                                    break
+                                else:
+                                    self.change_location_direct(i)
+                                    self.location_menu_open = False
+                                    self.clicked_location_button = None
+                                    clicked = True
+                                    break
                     # If clicked outside location buttons, close menu
                     if not clicked:
                         self.location_menu_open = False
