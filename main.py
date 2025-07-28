@@ -324,7 +324,7 @@ class Game:
     def change_location(self):
         # Open location menu instead of changing location immediately
         self.location_menu_open = True
-        return "Choose a location to travel to."
+        return 
 
     def change_location_direct(self, idx):
         # idx is the index in the filtered location list
